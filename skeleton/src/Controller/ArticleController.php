@@ -9,6 +9,8 @@ use App\Service\MarkdownHelper;
 use App\Service\SlackClient;
 use App\Entity\Article;
 use Doctrine\ORM\EntityManagerInterface;
+use App\Repository\ArticleRepository;
+use Symfony\Component\HttpFoundation\JsonResponse;
 
 class ArticleController extends AbstractController
 {
@@ -22,26 +24,24 @@ class ArticleController extends AbstractController
     /**
     * @Route("/", name="app_homepage")
     */
-    public function homepage()
+    public function homepage(ArticleRepository $repository)
     {
-        return $this->render('article/homepage.html.twig');
+        $articles = $repository->findAllPublishedOrderedByNewest();
+
+        return $this->render('article/homepage.html.twig', [
+          'articles' => $articles
+        ]);
     }
 
     /**
     * @Route("/news/{slug}", name="article_show")
     */
-    public function show($slug, SlackClient $slack, EntityManagerInterface $em)
+    public function show(Article $article, SlackClient $slack)
     {
-        if ($slug === 'khaaaaaan') {
+        if ($article->getSlug() === 'khaaaaaan') {
             $slack->sendMessage('Kahn', 'ah, ksdjgkdsjgkdsgjkg');
         }
 
-        $repository = $em->getRepository(Article::class);
-        $article  = $repository->findOneBy(['slug' => $slug]);
-
-        if (!$article) {
-            throw $this->createNotFoundException(sprintf('No article for slug "%s"', $slug));
-        }
 
         $comments = [
           'first comment',
@@ -56,13 +56,15 @@ class ArticleController extends AbstractController
     }
 
     /**
-    * @Route("/news/{article}/like", name="article_like", methods={"POST"})
+    * @Route("/news/{slug}/like", name="article_like", methods={"POST"})
     */
-    public function toggleArticleHeart($article, LoggerInterface $logger)
+    public function toggleArticleHeart(Article $article, LoggerInterface $logger, EntityManagerInterface $em)
     {
+        $article->incrementHeartCount();
+        $em->flush();
+
         // TODO - actually heart/unheart the article!
         $logger->info('Article is being hearted!');
-
-        return $this->json(['hearts' => rand(5, 100)]);
+        return new JsonResponse(['hearts' => $article->getHeartCount()]);
     }
 }
