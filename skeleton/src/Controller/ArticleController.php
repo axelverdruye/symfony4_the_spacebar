@@ -11,6 +11,7 @@ use App\Entity\Article;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Repository\ArticleRepository;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use App\Repository\CommentRepository;
 
 class ArticleController extends AbstractController
 {
@@ -36,21 +37,13 @@ class ArticleController extends AbstractController
     /**
     * @Route("/news/{slug}", name="article_show")
     */
-    public function show(Article $article, SlackClient $slack)
+    public function show(Article $article, SlackClient $slack, CommentRepository $commentRepo)
     {
         if ($article->getSlug() === 'khaaaaaan') {
             $slack->sendMessage('Kahn', 'ah, ksdjgkdsjgkdsgjkg');
         }
 
-
-        $comments = [
-          'first comment',
-          'second comment',
-          'third comment'
-        ];
-
         return $this->render('article/show.html.twig', [
-          'comments' => $comments,
           'article' => $article
         ]);
     }
